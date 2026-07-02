@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Bell, Palette, LogOut, Calendar } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
-import { authService } from '../services/authService';
 import { validatePassword, validatePasswordMatch } from '../utils/validators';
 import { getInitials, formatDate } from '../utils/formatters';
 import Card from '../components/ui/Card';
@@ -11,7 +10,7 @@ import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 
 const Profile = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, changePassword } = useAuth();
   const { success, error } = useToast();
   const navigate = useNavigate();
 
@@ -45,11 +44,11 @@ const Profile = () => {
 
     setSavingPassword(true);
     try {
-      await authService.changePassword(passwordForm.currentPassword, passwordForm.newPassword);
+      await changePassword(passwordForm.currentPassword, passwordForm.newPassword);
       success('Password changed successfully!');
       setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
-    } catch {
-      error('Failed to change password.');
+    } catch (err) {
+      error(err.message || 'Failed to change password.');
     } finally {
       setSavingPassword(false);
     }

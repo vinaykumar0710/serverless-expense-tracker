@@ -14,9 +14,17 @@ import Profile from './pages/Profile';
 import Settings from './pages/Settings';
 import NotFound from './pages/NotFound';
 import ToastContainer from './components/ui/Toast';
+import { Loader2 } from 'lucide-react';
+
+const FullScreenLoader = () => (
+  <div className="min-h-screen bg-bg flex items-center justify-center">
+    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+  </div>
+);
 
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, initializing } = useAuth();
+  if (initializing) return <FullScreenLoader />;
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
@@ -24,7 +32,8 @@ const ProtectedRoute = ({ children }) => {
 };
 
 const PublicRoute = ({ children }) => {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, initializing } = useAuth();
+  if (initializing) return <FullScreenLoader />;
   if (isAuthenticated) {
     return <Navigate to="/dashboard" replace />;
   }

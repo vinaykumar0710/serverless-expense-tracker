@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Serverless Expense Tracker - Backend API
+
+Globals:
+  Function:
+    Timeout: 30
+    Runtime: python3.12
+    MemorySize: 256
+    Architectures:
+      - x86_64
+
+Resources:
+  # Placeholder — replace with real resources when building the API
+  PlaceholderResource:
+    Type: AWS::CloudFormation::WaitConditionHandle
+
+Outputs: {}

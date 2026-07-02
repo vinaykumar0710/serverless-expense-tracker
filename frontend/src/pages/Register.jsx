@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { User, Mail, Lock } from 'lucide-react';
+import { User, Mail, Lock, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useToast } from '../context/ToastContext';
 import { validateEmail, validatePassword, validateRequired, validatePasswordMatch } from '../utils/validators';
@@ -10,7 +10,10 @@ import Input from '../components/ui/Input';
 const Register = () => {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirmPassword: '' });
   const [errors, setErrors] = useState({});
-  const { register, loading } = useAuth();
+  const [needsConfirmation, setNeedsConfirmation] = useState(false);
+  const [confirmCode, setConfirmCode] = useState('');
+  const [confirmError, setConfirmError] = useState('');
+  const { register, confirmSignUp, loading } = useAuth();
   const { success, error } = useToast();
   const navigate = useNavigate();
 
@@ -41,12 +44,68 @@ const Register = () => {
 
     try {
       await register({ name: form.name, email: form.email, password: form.password });
-      success('Account created successfully! Welcome to CloudSpend.');
-      navigate('/dashboard');
+      setNeedsConfirmation(true);
     } catch (err) {
-      error('Registration failed. Please try again.');
+      error(err.message || 'Registration failed. Please try again.');
     }
   };
+
+  const handleConfirm = async (e) => {
+    e.preventDefault();
+    if (!confirmCode.trim()) {
+      setConfirmError('Please enter the verification code.');
+      return;
+    }
+
+    try {
+      await confirmSignUp(form.email, confirmCode);
+      success('Account verified successfully! Please sign in.');
+      navigate('/login');
+    } catch (err) {
+      setConfirmError(err.message || 'Verification failed. Please try again.');
+    }
+  };
+
+  if (needsConfirmation) {
+    return (
+      <div>
+        <div className="text-center mb-8">
+          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+            <ShieldCheck className="w-7 h-7 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold text-text-primary mb-2">Verify Your Email</h1>
+          <p className="text-sm text-text-secondary">
+            We've sent a verification code to <span className="text-text-primary font-medium">{form.email}</span>
+          </p>
+        </div>
+
+        <form onSubmit={handleConfirm} className="space-y-5">
+          <Input
+            label="Verification Code"
+            icon={ShieldCheck}
+            placeholder="Enter 6-digit code"
+            value={confirmCode}
+            onChange={(e) => {
+              setConfirmCode(e.target.value);
+              setConfirmError('');
+            }}
+            error={confirmError}
+          />
+
+          <Button type="submit" fullWidth loading={loading} size="lg">
+            Verify Account
+          </Button>
+        </form>
+
+        <p className="text-center text-sm text-text-secondary mt-6">
+          Already verified?{' '}
+          <Link to="/login" className="text-primary hover:text-primary-hover font-medium transition-colors">
+            Sign in
+          </Link>
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div>
