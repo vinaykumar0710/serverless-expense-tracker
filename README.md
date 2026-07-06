@@ -2,7 +2,9 @@
 
 # ☁️ CloudSpend
 
-**A full-stack serverless expense tracking platform built on AWS**
+### A cloud-native serverless expense tracking application built with React, AWS Lambda, Amazon API Gateway, Amazon Cognito, and Amazon DynamoDB.
+
+A full-stack portfolio project demonstrating modern AWS cloud engineering practices including secure authentication, RESTful APIs, serverless computing, and NoSQL database design.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=white)](https://react.dev/)
@@ -18,15 +20,18 @@
 
 ## 📋 Project Overview
 
-CloudSpend is a production-grade, serverless expense tracking application that demonstrates real-world cloud engineering skills. Built with a **React + Vite** frontend and a **Python + AWS Lambda** backend, it provides users with a complete financial management experience — from expense tracking and budget management to spending analytics — all powered by a fully serverless AWS architecture.
+CloudSpend is a cloud-native serverless expense tracking application built to demonstrate practical cloud engineering skills using AWS.
 
-This project showcases:
+Built with a React + Vite frontend and a Python-based AWS Lambda backend, the application enables users to securely manage expenses, set monthly budgets, and visualize spending analytics through a fully serverless architecture.
 
-- **Serverless architecture** with AWS Lambda, API Gateway, DynamoDB, and Cognito
-- **Secure authentication** using Amazon Cognito with JWT-based authorization
-- **RESTful API design** with six Lambda functions handling CRUD operations and analytics
-- **Modern frontend** built with React 19, Tailwind CSS v4, and Chart.js
-- **Production patterns** including error handling, input validation, and CORS configuration
+This project demonstrates:
+
+- **Serverless application development** using AWS Lambda and Amazon API Gateway
+- **Secure authentication** with Amazon Cognito and JWT-based authorization
+- **NoSQL data modeling** using Amazon DynamoDB
+- **RESTful API development** with dedicated Lambda functions
+- **Modern frontend development** with React, Vite, Tailwind CSS, and Chart.js
+- **Cloud engineering best practices** including input validation, structured error handling, and CORS configuration
 
 ---
 
@@ -197,7 +202,7 @@ serverless-expense-tracker/
 │   │       ├── dynamodb.py
 │   │       ├── response.py
 │   │       └── validation.py
-│   └── template.yaml           # CloudFormation (DynamoDB tables)
+│   └── template.yaml           # Reference CloudFormation template
 ├── frontend/
 │   ├── public/                 # Static assets
 │   ├── src/
@@ -248,7 +253,17 @@ cd serverless-expense-tracker/frontend
 npm install
 
 # Create environment file
+### Windows
+
+```powershell
+copy .env.example .env
+```
+
+### macOS / Linux
+
+```bash
 cp .env.example .env
+```
 # Edit .env with your AWS resource IDs
 
 # Start development server
@@ -288,12 +303,14 @@ The `dist/` folder can be deployed to:
 
 ### Backend
 
-Each Lambda function in `backend/src/` is deployed independently:
+Each Lambda function under `backend/src/` is deployed independently.
 
-1. Package each function directory
-2. Upload to AWS Lambda via the Console or AWS CLI
-3. Configure environment variables (`EXPENSES_TABLE`, `BUDGETS_TABLE`)
-4. Attach to API Gateway routes with Cognito JWT authorizer
+Deployment steps:
+
+1. Deploy the Lambda function.
+2. Configure the required environment variables.
+3. Attach the function to its API Gateway route.
+4. Protect the route using the Amazon Cognito JWT Authorizer.
 
 > See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for detailed deployment instructions.
 
@@ -341,7 +358,7 @@ Each Lambda function in `backend/src/` is deployed independently:
 - [ ] Add **recurring expenses** support
 - [ ] Implement **expense export** (CSV / PDF)
 - [ ] Add **multi-currency** support with exchange rate API
-- [ ] Deploy infrastructure with **AWS CDK** or **Terraform**
+- [ ] Implement server-side pagination and filtering for large datasets
 - [ ] Add **CI/CD pipeline** with GitHub Actions
 - [ ] Implement **unit tests** for Lambda functions (pytest)
 - [ ] Add **frontend tests** with Vitest and React Testing Library
@@ -358,9 +375,11 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## 👤 Author
 
-**Vinay Kumar**
+**Vinaykumar Takankhar**
 
-- GitHub: [@vinaykumar0710](https://github.com/vinaykumar0710)
+Cloud & DevOps Engineer
+
+- GitHub: https://github.com/vinaykumar0710
 
 ---
 
