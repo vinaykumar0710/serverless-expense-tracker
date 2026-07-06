@@ -1,8 +1,23 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Serverless Expense Tracker - Backend API
+  CloudSpend - Serverless Expense Tracker Backend
 
+# ---------------------------------------------------------------------------
+# Parameters
+# ---------------------------------------------------------------------------
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+    AllowedValues:
+      - dev
+      - prod
+    Description: Deployment environment (dev or prod)
+
+# ---------------------------------------------------------------------------
+# Global configuration applied to all Lambda functions
+# ---------------------------------------------------------------------------
 Globals:
   Function:
     Timeout: 30
@@ -11,9 +26,91 @@ Globals:
     Architectures:
       - x86_64
 
+# ---------------------------------------------------------------------------
+# Resources
+# ---------------------------------------------------------------------------
 Resources:
-  # Placeholder — replace with real resources when building the API
-  PlaceholderResource:
-    Type: AWS::CloudFormation::WaitConditionHandle
 
-Outputs: {}
+  # -------------------------------------------------------------------------
+  # DynamoDB — Expenses Table
+  # -------------------------------------------------------------------------
+  ExpensesTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub cloudspend-${Environment}-expenses
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+        - AttributeName: expenseId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+        - AttributeName: expenseId
+          KeyType: RANGE
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Application
+          Value: CloudSpend
+        - Key: Environment
+          Value: !Ref Environment
+
+  # -------------------------------------------------------------------------
+  # DynamoDB — Budgets Table
+  # -------------------------------------------------------------------------
+  BudgetsTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: !Sub cloudspend-${Environment}-budgets
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      PointInTimeRecoverySpecification:
+        PointInTimeRecoveryEnabled: true
+      SSESpecification:
+        SSEEnabled: true
+      Tags:
+        - Key: Application
+          Value: CloudSpend
+        - Key: Environment
+          Value: !Ref Environment
+
+# ---------------------------------------------------------------------------
+# Outputs
+# ---------------------------------------------------------------------------
+Outputs:
+  ExpensesTableName:
+    Description: Name of the Expenses DynamoDB table
+    Value: !Ref ExpensesTable
+    Export:
+      Name: !Sub ${AWS::StackName}-ExpensesTableName
+
+  ExpensesTableArn:
+    Description: ARN of the Expenses DynamoDB table
+    Value: !GetAtt ExpensesTable.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-ExpensesTableArn
+
+  BudgetsTableName:
+    Description: Name of the Budgets DynamoDB table
+    Value: !Ref BudgetsTable
+    Export:
+      Name: !Sub ${AWS::StackName}-BudgetsTableName
+
+  BudgetsTableArn:
+    Description: ARN of the Budgets DynamoDB table
+    Value: !GetAtt BudgetsTable.Arn
+    Export:
+      Name: !Sub ${AWS::StackName}-BudgetsTableArn

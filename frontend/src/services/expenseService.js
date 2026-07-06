@@ -1,89 +1,169 @@
-import { mockExpenses, generateId } from '../data/expenses';
+import axios from "axios";
+import { fetchAuthSession } from "aws-amplify/auth";
 
-const delay = (ms = 300) => new Promise((resolve) => setTimeout(resolve, ms));
+const api = axios.create({
+  baseURL: import.meta.env.VITE_API_URL,
+});
 
-let expenses = [...mockExpenses];
+/**
+ * Builds the Authorization header from the current Cognito session.
+ */
+async function authHeader() {
+  const session = await fetchAuthSession();
+  return {
+    Authorization: `Bearer ${session.tokens.accessToken.toString()}`,
+  };
+}
+
+/**
+ * Converts a single backend expense object into the shape the UI expects.
+ * - Renames `expenseId` → `id`
+ * - Coerces `amount` (may arrive as a Decimal string) to a JS number
+ */
+function normalizeExpense(raw) {
+  return {
+    ...raw,
+    id: raw.expenseId ?? raw.id,
+    amount: Number(raw.amount),
+  };
+}
+
+/**
+ * Normalizes an array of backend expenses.
+ */
+function normalizeExpenses(rawList) {
+  return (rawList || []).map(normalizeExpense);
+}
 
 export const expenseService = {
-  async getExpenses({ search = '', category = '', sortBy = 'date', sortOrder = 'desc', page = 1, perPage = 8 } = {}) {
-    await delay();
+  /**
+   * Fetch all expenses from the API, then apply client-side
+   * search, category filter, sorting, and pagination.
+   *
+   * @param {Object} params
+   * @param {string}  params.search    - text to match against title / notes
+   * @param {string}  params.category  - category id to filter by ('' = all)
+   * @param {string}  params.sortBy    - 'date' | 'amount'
+   * @param {string}  params.sortOrder - 'asc' | 'desc'
+   * @param {number}  params.page      - 1-based page number
+   * @param {number}  params.perPage   - items per page
+   * @returns {{ data: Array, total: number, totalPages: number, currentPage: number }}
+   */
+  async getExpenses(params = {}) {
+    const {
+      search = "",
+      category = "",
+      sortBy = "date",
+      sortOrder = "desc",
+      page = 1,
+      perPage = 8,
+    } = params;
 
-    let filtered = [...expenses];
+    const headers = await authHeader();
+    const { data } = await api.get("/expenses", { headers });
 
+    let expenses = normalizeExpenses(data.expenses ?? data);
+
+    // --- Client-side search ---
     if (search) {
       const q = search.toLowerCase();
-      filtered = filtered.filter(
+      expenses = expenses.filter(
         (e) =>
-          e.title.toLowerCase().includes(q) ||
-          e.notes.toLowerCase().includes(q) ||
-          e.category.toLowerCase().includes(q)
+          e.title?.toLowerCase().includes(q) ||
+          e.notes?.toLowerCase().includes(q) ||
+          e.category?.toLowerCase().includes(q)
       );
     }
 
+    // --- Client-side category filter ---
     if (category) {
-      filtered = filtered.filter((e) => e.category === category);
+      expenses = expenses.filter((e) => e.category === category);
     }
 
-    filtered.sort((a, b) => {
-      let valA, valB;
-      if (sortBy === 'amount') {
-        valA = a.amount;
-        valB = b.amount;
+    // --- Client-side sorting ---
+    expenses.sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === "amount") {
+        cmp = a.amount - b.amount;
       } else {
-        valA = new Date(a.date).getTime();
-        valB = new Date(b.date).getTime();
+        // Default: sort by date
+        cmp = new Date(a.date) - new Date(b.date);
       }
-      return sortOrder === 'asc' ? valA - valB : valB - valA;
+      return sortOrder === "asc" ? cmp : -cmp;
     });
 
-    const total = filtered.length;
-    const totalPages = Math.ceil(total / perPage);
-    const start = (page - 1) * perPage;
-    const data = filtered.slice(start, start + perPage);
+    // --- Client-side pagination ---
+    const total = expenses.length;
+    const totalPages = Math.max(1, Math.ceil(total / perPage));
+    const currentPage = Math.min(page, totalPages);
+    const start = (currentPage - 1) * perPage;
+    const paged = expenses.slice(start, start + perPage);
 
-    return { data, total, totalPages, currentPage: page };
+    return { data: paged, total, totalPages, currentPage };
   },
 
+  /**
+   * Fetch a single expense by ID.
+   * Falls back to fetching all and filtering client-side because the
+   * backend does not expose a GET /expenses/:id endpoint.
+   */
   async getExpenseById(id) {
-    await delay(200);
-    const expense = expenses.find((e) => e.id === id);
-    if (!expense) throw new Error('Expense not found');
-    return { ...expense };
+    const headers = await authHeader();
+    const { data } = await api.get("/expenses", { headers });
+    const expenses = normalizeExpenses(data.expenses ?? data);
+    return expenses.find((e) => e.id === id) || null;
   },
 
-  async createExpense(data) {
-    await delay(400);
-    const newExpense = { ...data, id: generateId() };
-    expenses = [newExpense, ...expenses];
-    return newExpense;
+  /**
+   * Create a new expense.
+   */
+  async createExpense(expense) {
+    const headers = await authHeader();
+    const { data } = await api.post("/expenses", expense, { headers });
+    return data;
   },
 
-  async updateExpense(id, data) {
-    await delay(400);
-    const index = expenses.findIndex((e) => e.id === id);
-    if (index === -1) throw new Error('Expense not found');
-    expenses[index] = { ...expenses[index], ...data };
-    return { ...expenses[index] };
+  /**
+   * Update an existing expense by ID.
+   */
+  async updateExpense(id, expense) {
+    const headers = await authHeader();
+    const { data } = await api.put(`/expenses/${id}`, expense, { headers });
+    return data;
   },
 
+  /**
+   * Delete an expense by ID.
+   */
   async deleteExpense(id) {
-    await delay(300);
-    const index = expenses.findIndex((e) => e.id === id);
-    if (index === -1) throw new Error('Expense not found');
-    expenses = expenses.filter((e) => e.id !== id);
-    return { success: true };
+    const headers = await authHeader();
+    const { data } = await api.delete(`/expenses/${id}`, { headers });
+    return data;
   },
 
-  async getRecentExpenses(limit = 5) {
-    await delay(200);
-    const sorted = [...expenses].sort((a, b) => new Date(b.date) - new Date(a.date));
-    return sorted.slice(0, limit);
+  /**
+   * Return the N most-recent expenses (sorted by date descending).
+   */
+  async getRecentExpenses(count = 5) {
+    const headers = await authHeader();
+    const { data } = await api.get("/expenses", { headers });
+    const expenses = normalizeExpenses(data.expenses ?? data);
+
+    expenses.sort((a, b) => new Date(b.date) - new Date(a.date));
+    return expenses.slice(0, count);
   },
 
+  /**
+   * Sum of all expenses whose date matches today (local time zone).
+   */
   async getTodaySpending() {
-    await delay(200);
-    const today = new Date().toISOString().split('T')[0];
-    const todayExpenses = expenses.filter((e) => e.date === today);
-    return todayExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const headers = await authHeader();
+    const { data } = await api.get("/expenses", { headers });
+    const expenses = normalizeExpenses(data.expenses ?? data);
+
+    const today = new Date().toISOString().split("T")[0];
+    return expenses
+      .filter((e) => e.date === today)
+      .reduce((sum, e) => sum + e.amount, 0);
   },
 };
